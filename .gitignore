@@ -3,5 +3,5 @@
 *
 # ただし以下は追跡する
 !.gitignore
-!./__init__.py
-!./rs_dataset.py
+!RS_GroundTruth/__init__.py
+!RS_GroundTruth/rs_dataset.py
