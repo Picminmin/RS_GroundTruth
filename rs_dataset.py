@@ -1,9 +1,13 @@
 
+import os
 import numpy as np
 import scipy.io
-
+from sklearn.decomposition import PCA, FastICA
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
+from sklearn.manifold import TSNE
 class RemoteSensingDataset:
-    """
+    """リモートセンシングデータセットのロードと次元圧縮
+
     RemoteSensingDatasetをインスタンス化することで、読み込めるデータセットのキーワードを
     コンソールに表示する。
     ds = RemoteSensingDataset()
@@ -12,7 +16,6 @@ class RemoteSensingDataset:
     X: (H, W, Bands)
     y: (H, W) となっている。
 
-    このクラスに、主成分分析も実装したい。
     """
     def __init__(self, base_dir="."):
         """
@@ -69,6 +72,68 @@ class RemoteSensingDataset:
         X, y = X[feature_key], y[label_key]
         print(f"{dataset_keyword}を読み込みました。")
         return X, y
+
+    # ================ 次元圧縮メソッド ================
+
+    def apply_pca(self, X, n_components=30):
+        """PCAによる次元圧縮
+        ・ scikit-learn User Guide:
+        https://scikit-learn.org/stable/modules/decomposition.html#pca
+        ・ 解説記事(統計的背景も含む日本語解説)
+        https://qiita.com/nyk510/items/836293c3cbebcdee5fc2
+        """
+        H, W, B = X.shape
+        X_flat = X.reshape(-1, B)
+        X_pca = PCA(n_components=n_components).fit_transform(X_flat)
+        return X_pca.reshape(H, W, -1)
+
+    def apply_ica(self, X, n_components=30):
+        """ICAによる次元圧縮
+        ・ scikit-learn User Guide:
+        https://scikit-learn.org/stable/modules/decomposition.html#ica
+        ・ 日本語での応用解説(信号分離の例):
+        https://data.gunosy.io/entry/ica
+        """
+        H, W, B = X.shape
+        X_flat = X.reshape
+        X_ica = FastICA(n_components=n_components, random_state=0).fit_transform(X_flat)
+        return X_ica.reshape(H, W, -1)
+
+    def apply_lda(self, X, y, n_components=10):
+        """LDAによる次元圧縮 (教師ラベル必要)
+        ・ scikit-learn User Guide:
+        https://scikit-learn.org/stable/modules/lda_qda.html
+        ・ 日本語解説(数学的導出含む):
+        https://analytics-note.xyz/machine-learning/lda-overview/
+        """
+        H, W, B = X.shape
+        X_flat = X.reshape(-1, B)
+        y_flat = y.flatten()
+        mask = y_flat > 0 # 背景除去
+        lda = LDA(n_components=n_components)
+        X_lda = lda.fit_transform(X_flat[mask], y_flat[mask])
+        # 背景はゼロ埋めに戻す
+        X_out = np.zeros((X_flat.shape[0], n_components))
+        X_out[mask] = X_lda
+        return X_out.reshape(H, W, -1)
+
+    def apply_tsne(self, X, n_components=2, sample_size = 5000):
+        """t-SNEによる次元圧縮 (可視化用)
+        ・ scikit-learn User Guide:
+        https://scikit-learn.org/stable/modules/manifold.html#t-sne
+        ・ 原著論文(Maaten & Hinton, 2008):
+        ・ https://www.jmlr.org/papers/volume9/vandermaaten08a/vandermaaten08a.pdf
+        ・ 日本語の図解解説:
+        https://data-analytics.fun/2021/04/05/tsne-intro/
+
+        """
+        H, W, B = X.shape
+        X_flat = X.reshape(-1, B)
+        # サンプル数が多いと遅いのでsubsample
+        idx = np.random.choice(X_flat.shape[0], min(sample_size, X_flat.shape[0]), replace = False)
+        X_sub = X_flat[idx]
+        X_tsne = TSNE(n_components = n_components, rnadom_state = 0).fit_transform(X_sub)
+        return X_tsne, idx
 
 def load_mat_file(file_path):
     """MATファイルの読み込み"""
