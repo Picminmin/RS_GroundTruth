@@ -1,8 +1,3 @@
 
-# すべて無視
-*
-# ただし以下は追跡する
-!.gitignore
-!RS_GroundTruth
-!RS_GroundTruth/__init__.py
-!RS_GroundTruth/rs_dataset.py
+# RS_GroundTruth 配下の .matファイルは無視
+*.mat

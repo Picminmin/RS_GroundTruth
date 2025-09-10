@@ -1,0 +1,4 @@
+# .ipynbは改行変換の対象外にする
+# .mat本体はLFS(Large File Storage)に保存され、リポジトリにはポインタ情報
+# のみが入る。
+*.ipynb -text
