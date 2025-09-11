@@ -5,6 +5,8 @@ import scipy.io
 from sklearn.decomposition import PCA, FastICA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.manifold import TSNE
+
+__version__ = "0.0.1"
 class RemoteSensingDataset:
     """リモートセンシングデータセットのロードと次元圧縮
 
@@ -17,12 +19,25 @@ class RemoteSensingDataset:
     y: (H, W) となっている。
 
     """
-    def __init__(self, base_dir="."):
+    def __init__(self, base_dir=None):
         """
         Args:
-            base_dir (str): リモートセンシングデータが格納されているディレクトリ. デフォルトは"."でカレントにする。
+            base_dir (str): リモートセンシングデータのベースディレクトリ
+                - Noneの場合は自動判定
+                - 明示的に与えた場合はそれを優先
         """
-        self.base_dir = base_dir
+
+        if base_dir is None:
+            cwd = os.getcwd()
+            if "RS_GroundTruth" in cwd:
+                # RS_GroundTruthの中から呼ばれたとき
+                self.base_dir = "." # カレントに指定
+            else:
+                # main/ など外側から呼ばれたとき
+                self.base_dir = "./RS_GroundTruth"
+        else:
+            self.base_dir = base_dir
+
         self.available_data_keyword = ["Indianpines", "Salinas", "SalinasA", "Pavia", "PaviaU"]
 
         # インスタンス化時に利用可能なデータセットのキーワードを表示
@@ -44,28 +59,28 @@ class RemoteSensingDataset:
             y (ndarray): ターゲット (H, W)
         """
         if dataset_keyword == "Indianpines":
-            feature_path = "./01_Indian Pines/Indian_pines.mat"
-            label_path = "./01_Indian Pines/Indian_pines_gt.mat"
+            feature_path = os.path.join(self.base_dir, "01_Indian Pines/Indian_pines.mat")
+            label_path = os.path.join(self.base_dir, "01_Indian Pines/Indian_pines_gt.mat")
             feature_key, label_key = "indian_pines", "indian_pines_gt"
 
         elif dataset_keyword == "Salinas":
-            feature_path = "./02_Salinas/Salinas.mat"
-            label_path = "./02_Salinas/Salinas_gt.mat"
+            feature_path = os.path.join(self.base_dir, "02_Salinas/Salinas.mat")
+            label_path = os.path.join(self.base_dir, "02_Salinas/Salinas_gt.mat")
             feature_key, label_key = "salinas", "salinas_gt"
 
         elif dataset_keyword == "SalinasA":
-            feature_path = "./02_Salinas/SalinasA.mat"
-            label_path = "./02_Salinas/SalinasA_gt.mat"
+            feature_path = os.path.join(self.base_dir, "02_Salinas/SalinasA.mat")
+            label_path = os.path.join(self.base_dir, "02_Salinas/SalinasA_gt.mat")
             feature_key, label_key = "salinasA", "salinasA_gt"
 
         elif dataset_keyword == "Pavia":
-            feature_path = "./03_Pavia Centre and University/Pavia.mat"
-            label_path = "./03_Pavia Centre and University/Pavia_gt.mat"
+            feature_path = os.path.join(self.base_dir, "03_Pavia Centre and University/Pavia.mat")
+            label_path = os.path.join(self.base_dir, "03_Pavia Centre and University/Pavia_gt.mat")
             feature_key, label_key = "pavia", "pavia_gt"
 
         elif dataset_keyword == "PaviaU":
-            feature_path = "./03_Pavia Centre and University/PaviaU.mat"
-            label_path = "./03_Pavia Centre and University/PaviaU_gt.mat"
+            feature_path = os.path.join(self.base_dir, "03_Pavia Centre and University/PaviaU.mat")
+            label_path = os.path.join(self.base_dir, "03_Pavia Centre and University/PaviaU_gt.mat")
             feature_key, label_key = "paviaU", "paviaU_gt"
 
         X, y = load_mat_file(feature_path), load_mat_file(label_path)
