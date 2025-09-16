@@ -61,6 +61,7 @@ class RemoteSensingDataset:
             X (ndarray): 特徴量 (H, W, Bands)
             y (ndarray): ターゲット (H, W)
         """
+        X_clean = np.array([])
         if dataset_keyword == "Indianpines":
             feature_path = os.path.join(self.base_dir, "01_Indian Pines/Indian_pines.mat")
             label_path = os.path.join(self.base_dir, "01_Indian Pines/Indian_pines_gt.mat")
@@ -92,7 +93,8 @@ class RemoteSensingDataset:
 
         # --- bad bands を削除する場合 ---
         if dataset_keyword in ["Indianpines", "Salinas"] and self.remove_bad_bands:
-                X_clean, _ = self.remove_noisy_and_absorption_bands(X=X, dataset_keyword=dataset_keyword)
+            X_clean, _ = self.remove_noisy_and_absorption_bands(X=X, dataset_keyword=dataset_keyword)
+            X = X_clean
 
         print(f"{dataset_keyword}を読み込みました。")
         return X, y
