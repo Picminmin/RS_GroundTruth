@@ -192,13 +192,6 @@ class RemoteSensingDataset:
 
         return X_clean, bad_bands
 
-
-
-
-
-
-
-
 def load_mat_file(file_path):
     """MATファイルの読み込み"""
     try:
@@ -230,7 +223,6 @@ if __name__ == '__main__':
 
     X, y = ds.load("Pavia")
     print(X.shape)
-
     print(y.shape)
 
     X, y = ds.load("PaviaU")
