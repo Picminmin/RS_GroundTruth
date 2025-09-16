@@ -19,12 +19,14 @@ class RemoteSensingDataset:
     y: (H, W) となっている。
 
     """
-    def __init__(self, base_dir=None):
+    def __init__(self, base_dir=None, remove_bad_bands = True):
         """
         Args:
             base_dir (str): リモートセンシングデータのベースディレクトリ
                 - Noneの場合は自動判定
                 - 明示的に与えた場合はそれを優先
+            remove_bad_bands (bool): water absorption bandsを削除するオプション。
+                                     デフォルトはTrueとする。
         """
 
         if base_dir is None:
@@ -38,6 +40,7 @@ class RemoteSensingDataset:
         else:
             self.base_dir = base_dir
 
+        self.remove_bad_bands = remove_bad_bands
         self.available_data_keyword = ["Indianpines", "Salinas", "SalinasA", "Pavia", "PaviaU"]
 
         # インスタンス化時に利用可能なデータセットのキーワードを表示
@@ -83,8 +86,14 @@ class RemoteSensingDataset:
             label_path = os.path.join(self.base_dir, "03_Pavia Centre and University/PaviaU_gt.mat")
             feature_key, label_key = "paviaU", "paviaU_gt"
 
-        X, y = load_mat_file(feature_path), load_mat_file(label_path)
-        X, y = X[feature_key], y[label_key]
+        # --- ファイル読み込み ---
+        X_dict, y_dict = load_mat_file(feature_path), load_mat_file(label_path)
+        X, y = np.array(X_dict[feature_key]), np.array(y_dict[label_key])
+
+        # --- bad bands を削除する場合 ---
+        if dataset_keyword in ["Indianpines", "Salinas"] and self.remove_bad_bands:
+                X_clean, _ = self.remove_noisy_and_absorption_bands(X=X, dataset_keyword=dataset_keyword)
+
         print(f"{dataset_keyword}を読み込みました。")
         return X, y
 
@@ -142,6 +151,54 @@ class RemoteSensingDataset:
         X_tsne = TSNE(n_components = n_components, rnadom_state = 0).fit_transform(X_sub)
         return X_tsne, idx
 
+    def remove_noisy_and_absorption_bands(self, X, dataset_keyword):
+        """
+        Indian pines / Salinas系 のデータの水吸収帯域 + 端ノイズバンドを削除し、
+        200バンドに統一する。
+
+        Args:
+            X (ndarray): 入力データ (H, W, Bands)
+            dataset_keyword (str): "Indianpines" / "Salinas"
+
+        Returns:
+            X_clean (ndarray): 前処理後のデータ(H, W, 200)
+            removed_bands (list): 削除したバンドのインデックス(0始まり)
+        """
+        # 削除するバンド (0始まりで指定)
+        # AVIRIS (224 bands) 基準
+        indianpines_bad_bands = list(range(0,4))        # 1-4
+        indianpines_bad_bands += list(range(103,108))   # 104-108
+        indianpines_bad_bands += list(range(149,163))   # 150-163
+        indianpines_bad_bands += [219]                  # 220
+        # AVIRIS (224 bands) 基準
+        salinas_bad_bands = list(range(0,4))        # 1-4
+        salinas_bad_bands += list(range(107,112))   # 108-112
+        salinas_bad_bands += list(range(153,167))   # 154-167
+        salinas_bad_bands += [223]                  # 224
+
+        # マスクを作成
+        mask = np.ones(X.shape[2], dtype = bool)
+        if dataset_keyword == "Indianpines":
+            # Indianpinesはすでに1~4を削除済み → バンド数220
+            # つまり残っているのは"水吸収帯 20本"
+            bad_bands = [i for i in indianpines_bad_bands
+                         if i not in list(range(0,4))]
+        elif dataset_keyword == "Salinas":
+            bad_bands = salinas_bad_bands
+
+        mask[bad_bands] = False
+        X_clean = X[:, :, mask]
+        print(f"[INFO] {dataset_keyword}: {X.shape[2]} → {X_clean.shape[2]} bands (removed {len(bad_bands)})")
+
+        return X_clean, bad_bands
+
+
+
+
+
+
+
+
 def load_mat_file(file_path):
     """MATファイルの読み込み"""
     try:
@@ -173,6 +230,7 @@ if __name__ == '__main__':
 
     X, y = ds.load("Pavia")
     print(X.shape)
+
     print(y.shape)
 
     X, y = ds.load("PaviaU")
