@@ -212,6 +212,7 @@ if __name__ == '__main__':
     # インスタンス化
     ds = RemoteSensingDataset(base_dir=".")
     X, y = ds.load("Indianpines")
+    # print(f"X type{type(X)}, y type:{type(y)}")
     print(X.shape)
     print(y.shape)
 
