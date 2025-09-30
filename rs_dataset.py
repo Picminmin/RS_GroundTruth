@@ -34,7 +34,8 @@ class RemoteSensingDataset:
             self.base_dir = os.path.dirname(os.path.abspath(__file__))
         else:
             self.base_dir = base_dir
-
+        self.datasets = {}        # 読み込んだRSデータの(X, y)を保持するdict型の変数
+        self.background_label = 0 # 背景ラベルが0であるようなRSデータセットを用いる
         self.remove_bad_bands = remove_bad_bands
         self.available_data_keyword = ["Indianpines", "Salinas", "SalinasA", "Pavia", "PaviaU"]
 
@@ -56,7 +57,6 @@ class RemoteSensingDataset:
             X (ndarray): 特徴量 (H, W, Bands)
             y (ndarray): ターゲット (H, W)
         """
-        X_clean = np.array([])
         if dataset_keyword == "Indianpines":
             feature_path = os.path.join(self.base_dir, "01_Indian Pines/Indian_pines.mat")
             label_path = os.path.join(self.base_dir, "01_Indian Pines/Indian_pines_gt.mat")
@@ -85,14 +85,24 @@ class RemoteSensingDataset:
         # --- ファイル読み込み ---
         X_dict, y_dict = load_mat_file(feature_path), load_mat_file(label_path)
         X, y = np.array(X_dict[feature_key]), np.array(y_dict[label_key])
-
         # --- bad bands を削除する場合 ---
         if dataset_keyword in ["Indianpines", "Salinas"] and self.remove_bad_bands:
             X_clean, _ = self.remove_noisy_and_absorption_bands(X=X, dataset_keyword=dataset_keyword)
             X = X_clean
 
+        # datasetsにはloadした直近の1データセットのみ保持されるようにする。
+        self.datasets.clear() # datasetsに保存する前にまずはクリアしておく。
+        self.datasets[dataset_keyword] = {"X": X, "y": y}
+
         print(f"{dataset_keyword}を読み込みました。")
         return X, y
+
+    def category_num(self, dataset_keyword):
+        # 辞書オブジェクトself.datasetsにdataset_keywordキーがあるかを判定
+        if dataset_keyword not in self.datasets:
+            raise RuntimeError(f"{dataset_keyword} はロードされていません。")
+        y = self.datasets[dataset_keyword]["y"]
+        return len(np.unique(y[y != self.background_label])) # 背景=0 を除外
 
     # ================ 次元圧縮メソッド ================
 
@@ -207,28 +217,46 @@ if __name__ == '__main__':
     # インスタンス化
     ds = RemoteSensingDataset()
     print(ds.available_data_keyword)
-    X, y = ds.load("Indianpines")
+
+    dataset_keyword = "Indianpines"
+    X, y = ds.load(dataset_keyword)
+    print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
     # print(f"X type{type(X)}, y type:{type(y)}")
     print(X.shape)
     print(y.shape)
+    print(f"[INFO] class_list: {list(np.unique(y))}")
 
     X_pca = ds.apply_pca(X=X, n_components=20)
     X_lda = ds.apply_lda(X=X, y=y, n_components=15)
     print(X_pca.shape)
     print(X_lda.shape)
 
-    X, y = ds.load("Salinas")
+    dataset_keyword = "Salinas"
+    X, y = ds.load(dataset_keyword)
     print(X.shape)
     print(y.shape)
+    print(f"[INFO] class_list: {list(np.unique(y))}")
+    print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
 
-    X, y = ds.load("SalinasA")
-    print(X.shape)
-    print(y.shape)
 
-    X, y = ds.load("Pavia")
-    print(X.shape)
-    print(y.shape)
 
-    X, y = ds.load("PaviaU")
+    dataset_keyword = "SalinasA"
+    X, y = ds.load(dataset_keyword)
     print(X.shape)
     print(y.shape)
+    print(f"[INFO] class_list: {list(np.unique(y))}")
+    print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
+
+    dataset_keyword = "Pavia"
+    X, y = ds.load(dataset_keyword)
+    print(X.shape)
+    print(y.shape)
+    print(f"[INFO] class_list: {list(np.unique(y))}")
+    print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
+
+    dataset_keyword = "PaviaU"
+    X, y = ds.load(dataset_keyword)
+    print(X.shape)
+    print(y.shape)
+    print(f"[INFO] class_list: {list(np.unique(y))}")
+    print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
