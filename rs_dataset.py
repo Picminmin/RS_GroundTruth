@@ -1,5 +1,6 @@
 
 import os
+from pathlib import Path
 import numpy as np
 import scipy.io
 from sklearn.decomposition import PCA, FastICA
@@ -23,29 +24,28 @@ class RemoteSensingDataset:
         """
         Args:
             base_dir (str): リモートセンシングデータのベースディレクトリ
-                - Noneの場合は自動判定
+                - Noneの場合は ~/.cache/RS_GroundTruth を利用
                 - 明示的に与えた場合はそれを優先
             remove_bad_bands (bool): water absorption bandsを削除するオプション。
-                                     デフォルトはTrueとする。
         """
 
         if base_dir is None:
-            # このファイルのあるディレクトリを基準にする
-            self.base_dir = os.path.dirname(os.path.abspath(__file__))
+            cache_dir = Path.home() / ".cache" / "RS_GroundTruth"
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            self.base_dir = str(cache_dir)
         else:
             self.base_dir = base_dir
+
+        self.remove_bad_bands = remove_bad_bands
         self.datasets = {}        # 読み込んだRSデータの(X, y)を保持するdict型の変数
         self.background_label = 0 # 背景ラベルが0であるようなRSデータセットを用いる
-        self.remove_bad_bands = remove_bad_bands
-        self.available_data_keyword = ["Indianpines", "Salinas", "SalinasA", "Pavia", "PaviaU"]
+        self.available_data_keyword = [
+            "Indianpines", "Salinas", "SalinasA", "Pavia", "PaviaU"
+        ]
 
-        # インスタンス化時に利用可能なデータセットのキーワードを表示
-        if self.available_data_keyword:
-            print("[INFO] 利用可能なデータセットのキーワード:")
-            for name in self.available_data_keyword:
-                print(f" - {name}")
-        else:
-            print("[WARN] 利用可能なデータセットはありません")
+        print("[INFO] 利用可能なデータセットのキーワード:")
+        for name in self.available_data_keyword:
+            print(f" - {name}")
 
     def load(self, dataset_keyword):
         """
