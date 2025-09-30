@@ -1,7 +1,8 @@
 
 # RS_GroundTruth
 利用可能なRSデータセットの読み込みと基本的な前処理(PCA, ICA, LDA, t-SNE)を提供する。
-RSデータセットは['Hyperspectral Remote Sensing Scenes'][1]からダウンロードできます。
+RSデータセットは['Hyperspectral Remote Sensing Scenes'][1]でダウンロードできるものを使用しています。
+RSデータセットは、本パッケージ内にあるfetch_dataset()を実行することでダウンロードされ、利用できるようになります。
 
 ## 概要(Overview)
 
@@ -18,10 +19,12 @@ pip install -U git+https://github.com/Picminmin/RS_GroundTruth
 
 ```python
 # RemoteSensingDatasetクラスのインポート
-from RS_GroundTruth.rs_dataset import RemoteSensingDataset
+from RS_GroundTruth import fetch_dataset, RemoteSensingDataset
+# データをダウンロード( ~/.cache/RS_GroundTruth に保存される)
+fetch_dataset("Indianpines")　# 他のdataset_keywordも同様にしてダウンロードしてください
 # インスタンス化
 ds = RemoteSensingDataset()
-print(ds.available_data_keyword) # ['Indianpines', 'Salinas', 'SalinasA', 'Pavia', 'PaviaU']
+print(ds.available_data_keyword) # ['Indianpines', 'Salinas', 'SalinasA', 'Pavia', 'PaviaU'] ← dataset_keywordに入力できる値
 ```
 Console
 ```console
