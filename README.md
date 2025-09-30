@@ -76,6 +76,17 @@ print(X_lda.shape) # (145, 145, 15)
 
 本パッケージは、データ配布元の EHU グループとは独立に開発されています。
 
+### データセットのダウンロードについて
+
+`fetch_dataset` 関数は大容量ファイルを安定してダウンロードするため、
+環境に `aria2c` または `wget` があれば自動的に利用します。
+インストールされていない場合は Python の requests にフォールバックしますが、
+通信環境によっては失敗することがあります。
+
+推奨:  
+- Linux/macOS: `sudo apt install aria2` または `brew install aria2`  
+- Windows: [aria2 release page](https://github.com/aria2/aria2/releases) からバイナリを入手
+
 <!-- 参考文献 -->
 [1]:https://www.ehu.eus/ccwintco/index.php?title=Hyperspectral_Remote_Sensing_Scenes
 
