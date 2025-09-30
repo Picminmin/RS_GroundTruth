@@ -30,13 +30,8 @@ class RemoteSensingDataset:
         """
 
         if base_dir is None:
-            cwd = os.getcwd()
-            if "RS_GroundTruth" in cwd:
-                # RS_GroundTruthの中から呼ばれたとき
-                self.base_dir = "." # カレントに指定
-            else:
-                # main/ など外側から呼ばれたとき
-                self.base_dir = "./RS_GroundTruth"
+            # このファイルのあるディレクトリを基準にする
+            self.base_dir = os.path.dirname(os.path.abspath(__file__))
         else:
             self.base_dir = base_dir
 
@@ -210,7 +205,7 @@ def load_mat_file(file_path):
 if __name__ == '__main__':
 
     # インスタンス化
-    ds = RemoteSensingDataset(base_dir=".")
+    ds = RemoteSensingDataset()
     X, y = ds.load("Indianpines")
     # print(f"X type{type(X)}, y type:{type(y)}")
     print(X.shape)
