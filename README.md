@@ -46,11 +46,32 @@ print(X_pca.shape) # (145, 145, 20)
 # ldaによる次元圧縮
 X_lda = ds.apply_lda(X=X, y=y, n_components=15)
 print(X_lda.shape) # (145, 145, 15)
-
-
 ```
 
+## データ利用とクレジット
 
+このパッケージでは以下のハイパースペクトルリモートセンシングデータセットを利用しています：
+
+- Indian Pines  
+- Salinas  
+- SalinasA  
+- Pavia Centre  
+- Pavia University  
+
+これらのデータは、**Universidad del País Vasco / Euskal Herriko Unibertsitatea (UPV/EHU), Grupo de Inteligencia Computacional (ccwintco group)** が公開している  
+「[Hyperspectral Remote Sensing Scenes](https://www.ehu.eus/ccwintco/index.php?title=Hyperspectral_Remote_Sensing_Scenes)」サイトから取得したものです。  
+
+ご利用の際は、上記サイトをクレジットとして明示するとともに、各データセットを最初に公開した研究・論文を適切に引用してください。例：  
+
+- **Indian Pines**: AVIRIS sensor, NASA Jet Propulsion Laboratory.  
+- **Salinas / SalinasA**: AVIRIS sensor over Salinas Valley, California.  
+- **Pavia Centre / Pavia University**: ROSIS-03 sensor over Pavia, Italy.  
+
+> 参考文献の一例:  
+> Pavia University scene — “Pavia University scene was acquired by the ROSIS-03 sensor over Pavia, Italy”  
+> (see: [Optical Engineering / Applied Optics](https://opg.optica.org/abstract.cfm?uri=ao-59-13-4151))
+
+本パッケージは、データ配布元の EHU グループとは独立に開発されています。
 
 <!-- 参考文献 -->
 [1]:https://www.ehu.eus/ccwintco/index.php?title=Hyperspectral_Remote_Sensing_Scenes
