@@ -206,10 +206,16 @@ if __name__ == '__main__':
 
     # インスタンス化
     ds = RemoteSensingDataset()
+    print(ds.available_data_keyword)
     X, y = ds.load("Indianpines")
     # print(f"X type{type(X)}, y type:{type(y)}")
     print(X.shape)
     print(y.shape)
+
+    X_pca = ds.apply_pca(X=X, n_components=20)
+    X_lda = ds.apply_lda(X=X, y=y, n_components=15)
+    print(X_pca.shape)
+    print(X_lda.shape)
 
     X, y = ds.load("Salinas")
     print(X.shape)
