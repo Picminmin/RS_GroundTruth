@@ -10,7 +10,7 @@ RSデータセットは['Hyperspectral Remote Sensing Scenes'][1]からダウン
 pip install git+https://github.com/Picminmin/RS_GroundTruth
 ```
 インストールしたパッケージをGitHubリポジトリの最新版に置き換えたい場合には、以下のコマンドを実行してください。
-```
+```bash
 pip install -U git+https://github.com/Picminmin/RS_GroundTruth
 ```
 
@@ -24,7 +24,7 @@ ds = RemoteSensingDataset()
 print(ds.available_data_keyword) # ['Indianpines', 'Salinas', 'SalinasA', 'Pavia', 'PaviaU']
 ```
 Console
-```Console
+```console
 [INFO] 利用可能なデータセットのキーワード:
  - Indianpines
  - Salinas
@@ -32,6 +32,7 @@ Console
  - Pavia
  - PaviaU
 ```
+
 ```python
 # Indianpinesの読み込み
 X, y = ds.load("Indianpines")
@@ -54,11 +55,3 @@ print(X_lda.shape) # (145, 145, 15)
 <!-- 参考文献 -->
 [1]:https://www.ehu.eus/ccwintco/index.php?title=Hyperspectral_Remote_Sensing_Scenes
 
-
-#### 注意
-NAはNot Availableの略語で利用不可という意味である。
-理由は安全にダウンロードできなかったためである。
-
-#### anomaly detection(アノマリ検知、異常検知)
-データセットの中から正常だとみなせないサンプルを特定する技術をanomaly detectionという。
-'Xudong Kang's Homepage'(URL: 'https://xudongkang.weebly.com/data-sets.html') にデータセットが公開されているが、anomaly detectionを実現するためのデータセットの利用方法は掲載されていない。
