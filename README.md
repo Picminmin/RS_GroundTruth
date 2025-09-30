@@ -21,9 +21,10 @@ pip install -U git+https://github.com/Picminmin/RS_GroundTruth
 from RS_GroundTruth.rs_dataset import RemoteSensingDataset
 # インスタンス化
 ds = RemoteSensingDataset()
+print(ds.available_data_keyword) # ['Indianpines', 'Salinas', 'SalinasA', 'Pavia', 'PaviaU']
 ```
 Console
-```
+```Console
 [INFO] 利用可能なデータセットのキーワード:
  - Indianpines
  - Salinas
@@ -32,6 +33,7 @@ Console
  - PaviaU
 ```
 ```python
+# Indianpinesの読み込み
 X, y = ds.load("Indianpines")
 print(X.shape) # (145, 145, 200)
 print(y.shape) # (145, 145)
@@ -43,6 +45,8 @@ print(X_pca.shape) # (145, 145, 20)
 # ldaによる次元圧縮
 X_lda = ds.apply_lda(X=X, y=y, n_components=15)
 print(X_lda.shape) # (145, 145, 15)
+
+
 ```
 
 
