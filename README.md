@@ -88,8 +88,8 @@ fetch_dataset("Indianpines")　# 他のdataset_keywordも同様にしてダウ�
 # RemoteSensingDatasetクラスのインポート
 from RS_GroundTruth import RemoteSensingDataset
 # インスタンス化
-ds = RemoteSensingDataset()
-print(ds.available_data_keyword) # ['Indianpines', 'Salinas', 'SalinasA', 'Pavia', 'PaviaU'] ← dataset_keywordに入力できる値
+ds = RemoteSensingDataset(base_dir="RS_GroundTruthのpath") # ← ローカルPCの中にあるRS_GroundTruthのpathを入力してください
+print(ds.available_data_keyword) # ['Indianpines', 'Salinas', 'SalinasA', 'Pavia', 'PaviaU'] # ← dataset_keywordに入力できる値
 ```
 Console
 ```console
