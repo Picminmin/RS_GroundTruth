@@ -39,8 +39,6 @@ def has_command(cmd: str) -> bool:
     """コマンドが存在するか確認"""
     return which(cmd) is not None
 
-
-
 def robust_download(url, filename, retries=3, delay=5):
     """堅牢なダウンロード処理 (aria2c > wget > Python requests) """
 

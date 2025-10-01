@@ -95,10 +95,6 @@ class RemoteSensingDataset:
         X_dict = load_mat_file(feature_path)
         y_dict = load_mat_file(label_path)
 
-        # print(f"X_dict : {X_dict}")
-        # print(f"X_dict keys: {X_dict.keys()}")
-        # print(f"X_dict[feature_key] type: {type(X_dict[feature_key])}")
-        
         X = np.array(X_dict[feature_key])
         y = np.array(y_dict[label_key])
         # --- bad bands を削除する場合 ---
@@ -214,51 +210,6 @@ class RemoteSensingDataset:
         print(f"[INFO] {dataset_keyword}: {X.shape[2]} → {X_clean.shape[2]} bands (removed {len(bad_bands)})")
 
         return X_clean, bad_bands
-
-# def load_mat_file(file_path):
-    # """MATファイルの読み込み"""
-    # try:
-        # mat_data = scipy.io.loadmat(file_path)
-        不要なメタデータを除去
-        # mat_data_cleaned = {key: value for key, value in mat_data.items()
-                            # if not key.startswith('__')}
-        # return mat_data_cleaned
-    # except FileNotFoundError:
-        # print(f'エラー: ファイルが見つかりません:{file_path}')
-    # except Exception as e:
-        # print(f'エラーが発生しました:{e}')
-
-# def load_mat_file(file_path):
-    # """
-    # MATLAB .mat ファイルの自動読み込み (v7.3 以上は h5py, v7.2 以下は scipy.io)
-#
-    # Args:
-        # file_path (str): .mat ファイルのパス
-#
-    # Returns:
-        # dict: キーを変数名、値を numpy 配列にした辞書
-    # """
-    # if not os.path.exists(file_path):
-        # raise FileNotFoundError(f"ファイルが見つかりません: {file_path}")
-#
-    # with open(file_path, 'rb') as f:
-        # header = f.read(128)
-    # header_str = header.decode('latin-1', errors='ignore')
-    # print(f"header_str: {header_str}")
-    # try:
-        # --- ファイルの先頭数バイトを確認して v7.3(HDF5)か判別 ---
-        # if "MATLAB 7.3" in header_str:
-            # v7.3 以降 (HDF5)
-            # with h5py.File(file_path, 'r') as f:
-                # return {k: np.array(f[k]) for k in f.keys()}
-        # else:
-            # v7.2 以下
-            # mat_data = scipy.io.loadmat(file_path)
-            # pprint(f"keys:{mat_data.keys()}")
-            # return {k: v for k, v in mat_data.items() if not k.startswith('__')}
-    # except Exception as e:
-        # print(f"エラーが発生しました: {e}")
-        # return {}
 
 def load_mat_file(file_path):
     try:
