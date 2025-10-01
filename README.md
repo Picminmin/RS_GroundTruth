@@ -19,47 +19,6 @@ pip install git+https://github.com/Picminmin/RS_GroundTruth
 pip install -U git+https://github.com/Picminmin/RS_GroundTruth
 ```
 
-## 使い方(Usage / Examples)
-<!--
-from RS_GroundTruth import fetch_dataset, RemoteSensingDataset
-# データをダウンロード( ~/.cache/RS_GroundTruth に保存される)
-# ここで、~はシェル上でのユーザーのホームディレクトリを指す記号である。
-fetch_dataset("Indianpines")　# 他のdataset_keywordも同様にしてダウンロードしてください
--->
-
-
-```python
-# RemoteSensingDatasetクラスのインポート
-from RS_GroundTruth import RemoteSensingDataset
-# インスタンス化
-ds = RemoteSensingDataset()
-print(ds.available_data_keyword) # ['Indianpines', 'Salinas', 'SalinasA', 'Pavia', 'PaviaU'] ← dataset_keywordに入力できる値
-```
-Console
-```console
-[INFO] 利用可能なデータセットのキーワード:
- - Indianpines
- - Salinas
- - SalinasA
- - Pavia
- - PaviaU
-```
-
-```python
-# Indianpinesの読み込み
-X, y = ds.load("Indianpines")
-print(X.shape) # (145, 145, 200)
-print(y.shape) # (145, 145)
-
-# pcaによる次元圧縮
-X_pca = ds.apply_pca(X=X, n_components=20)
-print(X_pca.shape) # (145, 145, 20)
-
-# ldaによる次元圧縮
-X_lda = ds.apply_lda(X=X, y=y, n_components=15)
-print(X_lda.shape) # (145, 145, 15)
-```
-
 ## データ利用とクレジット
 
 このパッケージでは以下のハイパースペクトルリモートセンシングデータセットを利用しています：
@@ -115,6 +74,49 @@ RS_GroundTruth/
 │
 └── rs_dataset.py
 ```
+
+## 使い方(Usage / Examples)
+<!--
+from RS_GroundTruth import fetch_dataset, RemoteSensingDataset
+# データをダウンロード( ~/.cache/RS_GroundTruth に保存される)
+# ここで、~はシェル上でのユーザーのホームディレクトリを指す記号である。
+fetch_dataset("Indianpines")　# 他のdataset_keywordも同様にしてダウンロードしてください
+-->
+
+
+```python
+# RemoteSensingDatasetクラスのインポート
+from RS_GroundTruth import RemoteSensingDataset
+# インスタンス化
+ds = RemoteSensingDataset()
+print(ds.available_data_keyword) # ['Indianpines', 'Salinas', 'SalinasA', 'Pavia', 'PaviaU'] ← dataset_keywordに入力できる値
+```
+Console
+```console
+[INFO] 利用可能なデータセットのキーワード:
+ - Indianpines
+ - Salinas
+ - SalinasA
+ - Pavia
+ - PaviaU
+```
+
+```python
+# Indianpinesの読み込み
+X, y = ds.load("Indianpines")
+print(X.shape) # (145, 145, 200)
+print(y.shape) # (145, 145)
+
+# pcaによる次元圧縮
+X_pca = ds.apply_pca(X=X, n_components=20)
+print(X_pca.shape) # (145, 145, 20)
+
+# ldaによる次元圧縮
+X_lda = ds.apply_lda(X=X, y=y, n_components=15)
+print(X_lda.shape) # (145, 145, 15)
+```
+
+
 
 <!-- 参考文献 -->
 [1]:https://www.ehu.eus/ccwintco/index.php?title=Hyperspectral_Remote_Sensing_Scenes
