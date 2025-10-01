@@ -19,8 +19,8 @@ DATASET_URLS = {
         "subdir": "02_Salinas",
     },
     "SalinasA": {
-        "feature": "https://www.ehu.eus/ccwintco/uploads/d/df/SalinasA.mat",
-        "label":   "https://www.ehu.eus/ccwintco/uploads/a/aa/SalinasA_gt.mat",
+        "feature": "http://www.ehu.eus/ccwintco/uploads/d/df/SalinasA.mat",
+        "label":   "http://www.ehu.eus/ccwintco/uploads/a/aa/SalinasA_gt.mat",
         "subdir":  "02_Salinas",
     },
     "Pavia": {
@@ -47,7 +47,14 @@ def robust_download(url, filename, retries=3, delay=5):
     # aria2c があれば優先
     if has_command("aria2c"):
         print("[INFO] Using aria2c for download")
-        cmd = ["aria2c", "-x", "8", "-s", "8", "-c", "-o", filename, url]
+        out_dir = os.path.dirname(filename)
+        os.makedirs(out_dir, exist_ok = True)
+        cmd = ["aria2c", "-x", "8", "-s", "8", "-c",
+               "--retry-wait=5", # サーバーが通信を強制的に切断後、5秒待って再開
+               "--max-tries=30", # 再試行の上限回数
+               "-d", out_dir,
+               "-o", os.path.basename(filename),
+               url]
         subprocess.run(cmd, check=True)
         return
 
@@ -55,7 +62,7 @@ def robust_download(url, filename, retries=3, delay=5):
     if has_command("wget"):
         print("[INFO] Using wget for download")
         cmd = ["wget", "-c", "-O", filename, url]
-        subprocess.run(cmd, chech=True)
+        subprocess.run(cmd, check=True)
         return
 
     # fallback: Python requests
@@ -84,10 +91,16 @@ def robust_download(url, filename, retries=3, delay=5):
                                 else:
                                     print(f"[INFO] Downloading... elapsed {elapsed} seconds")
                                 next_report += 10
+                # ✅ 完了後にサイズ検証
+                if total > 0 and downloaded < total:
+                    raise IOError(f"Incomplete download: got {downloaded} bytes, exptected {total}")
+
                 # ✅ 完了時に 100% を明示
                 elapsed = int(time.time() - start_time)
                 if total > 0:
                     print(f"[INFO] Download complete! elapsed {elapsed} sec (100.00%)")
+                else:
+                    print(f"[INFO] Download complete! elapsed {elapsed} sec")
             return # 成功したら終了
         except Exception as e:
             print(f"[WARN] Attempt {attempt} failed: {e}")
@@ -147,5 +160,13 @@ def fetch_dataset(name: str, base_dir: str = None):
     return paths
 
 if __name__ == "__main__":
-    dataset_keyword = "SalinasA"
+    # import os
+    # from pprint import pprint
+    # pprint(os.environ["PATH"])
+
+    # dataset_keyword = "Indianpines"
+    # dataset_keyword = "Salinas"
+    # dataset_keyword = "SalinasA"
+    # dataset_keyword = "Pavia"
+    dataset_keyword = "PaviaU"
     fetch_dataset(dataset_keyword)

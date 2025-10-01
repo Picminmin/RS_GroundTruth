@@ -6,6 +6,8 @@ import scipy.io
 from sklearn.decomposition import PCA, FastICA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.manifold import TSNE
+import h5py
+from pprint import pprint
 
 __version__ = "0.0.1"
 class RemoteSensingDataset:
@@ -57,34 +59,48 @@ class RemoteSensingDataset:
             X (ndarray): 特徴量 (H, W, Bands)
             y (ndarray): ターゲット (H, W)
         """
+        key_map = {
+            "Indianpines": ("indian_pines", "indian_pines_gt"),
+            "Salinas": ("salinas", "salinas_gt"),
+            "SalinasA": ("salinasA", "salinasA_gt"),
+            "Pavia": ("pavia", "pavia_gt"),
+            "PaviaU": ("paviaU", "paviaU_gt"),
+        }
         if dataset_keyword == "Indianpines":
             feature_path = os.path.join(self.base_dir, "01_Indian Pines/Indian_pines.mat")
             label_path = os.path.join(self.base_dir, "01_Indian Pines/Indian_pines_gt.mat")
-            feature_key, label_key = "indian_pines", "indian_pines_gt"
+            feature_key, label_key = key_map[dataset_keyword]
 
         elif dataset_keyword == "Salinas":
             feature_path = os.path.join(self.base_dir, "02_Salinas/Salinas.mat")
             label_path = os.path.join(self.base_dir, "02_Salinas/Salinas_gt.mat")
-            feature_key, label_key = "salinas", "salinas_gt"
+            feature_key, label_key = key_map[dataset_keyword]
 
         elif dataset_keyword == "SalinasA":
             feature_path = os.path.join(self.base_dir, "02_Salinas/SalinasA.mat")
             label_path = os.path.join(self.base_dir, "02_Salinas/SalinasA_gt.mat")
-            feature_key, label_key = "salinasA", "salinasA_gt"
+            feature_key, label_key = key_map[dataset_keyword]
 
         elif dataset_keyword == "Pavia":
             feature_path = os.path.join(self.base_dir, "03_Pavia Centre and University/Pavia.mat")
             label_path = os.path.join(self.base_dir, "03_Pavia Centre and University/Pavia_gt.mat")
-            feature_key, label_key = "pavia", "pavia_gt"
+            feature_key, label_key = key_map[dataset_keyword]
 
         elif dataset_keyword == "PaviaU":
             feature_path = os.path.join(self.base_dir, "03_Pavia Centre and University/PaviaU.mat")
             label_path = os.path.join(self.base_dir, "03_Pavia Centre and University/PaviaU_gt.mat")
-            feature_key, label_key = "paviaU", "paviaU_gt"
+            feature_key, label_key = key_map[dataset_keyword]
 
         # --- ファイル読み込み ---
-        X_dict, y_dict = load_mat_file(feature_path), load_mat_file(label_path)
-        X, y = np.array(X_dict[feature_key]), np.array(y_dict[label_key])
+        X_dict = load_mat_file(feature_path)
+        y_dict = load_mat_file(label_path)
+
+        # print(f"X_dict : {X_dict}")
+        # print(f"X_dict keys: {X_dict.keys()}")
+        # print(f"X_dict[feature_key] type: {type(X_dict[feature_key])}")
+        
+        X = np.array(X_dict[feature_key])
+        y = np.array(y_dict[label_key])
         # --- bad bands を削除する場合 ---
         if dataset_keyword in ["Indianpines", "Salinas"] and self.remove_bad_bands:
             X_clean, _ = self.remove_noisy_and_absorption_bands(X=X, dataset_keyword=dataset_keyword)
@@ -199,18 +215,70 @@ class RemoteSensingDataset:
 
         return X_clean, bad_bands
 
+# def load_mat_file(file_path):
+    # """MATファイルの読み込み"""
+    # try:
+        # mat_data = scipy.io.loadmat(file_path)
+        不要なメタデータを除去
+        # mat_data_cleaned = {key: value for key, value in mat_data.items()
+                            # if not key.startswith('__')}
+        # return mat_data_cleaned
+    # except FileNotFoundError:
+        # print(f'エラー: ファイルが見つかりません:{file_path}')
+    # except Exception as e:
+        # print(f'エラーが発生しました:{e}')
+
+# def load_mat_file(file_path):
+    # """
+    # MATLAB .mat ファイルの自動読み込み (v7.3 以上は h5py, v7.2 以下は scipy.io)
+#
+    # Args:
+        # file_path (str): .mat ファイルのパス
+#
+    # Returns:
+        # dict: キーを変数名、値を numpy 配列にした辞書
+    # """
+    # if not os.path.exists(file_path):
+        # raise FileNotFoundError(f"ファイルが見つかりません: {file_path}")
+#
+    # with open(file_path, 'rb') as f:
+        # header = f.read(128)
+    # header_str = header.decode('latin-1', errors='ignore')
+    # print(f"header_str: {header_str}")
+    # try:
+        # --- ファイルの先頭数バイトを確認して v7.3(HDF5)か判別 ---
+        # if "MATLAB 7.3" in header_str:
+            # v7.3 以降 (HDF5)
+            # with h5py.File(file_path, 'r') as f:
+                # return {k: np.array(f[k]) for k in f.keys()}
+        # else:
+            # v7.2 以下
+            # mat_data = scipy.io.loadmat(file_path)
+            # pprint(f"keys:{mat_data.keys()}")
+            # return {k: v for k, v in mat_data.items() if not k.startswith('__')}
+    # except Exception as e:
+        # print(f"エラーが発生しました: {e}")
+        # return {}
+
 def load_mat_file(file_path):
-    """MATファイルの読み込み"""
     try:
         mat_data = scipy.io.loadmat(file_path)
-        # 不要なメタデータを除去
-        mat_data_cleaned = {key: value for key, value in mat_data.items()
-                            if not key.startswith('__')}
-        return mat_data_cleaned
-    except FileNotFoundError:
-        print(f'エラー: ファイルが見つかりません:{file_path}')
+        return {k: v for k, v in mat_data.items() if not k.startswith("__")}
     except Exception as e:
-        print(f'エラーが発生しました:{e}')
+        print(f"[WARN] scipy.io.loadmat 失敗 ({e}), h5py に切り替えます")
+        try:
+            data = {}
+            with h5py.File(file_path, "r") as f:
+                for k in f.keys():
+                    arr = np.array(f[k])
+                    if arr.ndim > 1:
+                        arr = arr.transpose()
+                    data[k] = arr
+            return data
+        except Exception as e2:
+            print(f"[ERROR] h5py でも失敗: {e2}")
+            return {}
+
 
 if __name__ == '__main__':
 
