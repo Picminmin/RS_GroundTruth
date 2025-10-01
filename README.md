@@ -21,6 +21,7 @@ pip install -U git+https://github.com/Picminmin/RS_GroundTruth
 # RemoteSensingDatasetクラスのインポート
 from RS_GroundTruth import fetch_dataset, RemoteSensingDataset
 # データをダウンロード( ~/.cache/RS_GroundTruth に保存される)
+# ここで、~はシェル上でのユーザーのホームディレクトリを指す記号である。
 fetch_dataset("Indianpines")　# 他のdataset_keywordも同様にしてダウンロードしてください
 # インスタンス化
 ds = RemoteSensingDataset()
