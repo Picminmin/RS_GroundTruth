@@ -95,6 +95,7 @@ print(X_lda.shape) # (145, 145, 15)
 ## ディレクトリ構成
 ダウンロードした `.mat` ファイルは、以下のような構成に配置してください。
 
+```text
 RS_GroundTruth/
 ├── 01_Indian Pines/
 │   ├── Indian_pines.mat
@@ -113,6 +114,7 @@ RS_GroundTruth/
 │   └── PaviaU_gt.mat
 │
 └── rs_dataset.py
+```
 
 <!-- 参考文献 -->
 [1]:https://www.ehu.eus/ccwintco/index.php?title=Hyperspectral_Remote_Sensing_Scenes
