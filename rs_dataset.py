@@ -238,8 +238,6 @@ if __name__ == '__main__':
     print(f"[INFO] class_list: {list(np.unique(y))}")
     print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
 
-
-
     dataset_keyword = "SalinasA"
     X, y = ds.load(dataset_keyword)
     print(X.shape)
