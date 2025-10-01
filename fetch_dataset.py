@@ -19,9 +19,9 @@ DATASET_URLS = {
         "subdir": "02_Salinas",
     },
     "SalinasA": {
-        "feature": "http://www.ehu.eus/ccwintco/uploads/f/fa/SalinasA.mat",
-        "label": "http://www.ehu.eus/ccwintco/uploads/f/fa/SalinasA_gt.mat",
-        "subdir": "02_Salinas",
+        "feature": "https://www.ehu.eus/ccwintco/uploads/d/df/SalinasA.mat",
+        "label":   "https://www.ehu.eus/ccwintco/uploads/a/aa/SalinasA_gt.mat",
+        "subdir":  "02_Salinas",
     },
     "Pavia": {
         "feature": "http://www.ehu.eus/ccwintco/uploads/e/e3/Pavia.mat",
@@ -135,6 +135,7 @@ def fetch_dataset(name: str, base_dir: str = None):
             except Exception:
                 pass # Content-Length が取れない場合は無視
 
+        print(f"参照しているパス: {file_path}")
         if not os.path.exists(file_path):
             print(f"[INFO] Downloading {filename} ...")
             robust_download(url, file_path)
@@ -146,5 +147,5 @@ def fetch_dataset(name: str, base_dir: str = None):
     return paths
 
 if __name__ == "__main__":
-    dataset_keyword = "Pavia"
+    dataset_keyword = "SalinasA"
     fetch_dataset(dataset_keyword)
