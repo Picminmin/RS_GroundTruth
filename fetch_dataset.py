@@ -39,20 +39,38 @@ def has_command(cmd: str) -> bool:
     """コマンドが存在するか確認"""
     return which(cmd) is not None
 
+def verify_file(url: str, filepath: str) -> bool:
+    """Content-Length と実際のサイズを比較して完全性を検証"""
+    try:
+        expected_size = int(requests.head(url, timeout=10).headers.get("Content-Length", 0))
+        local_size = os.path.getsize(filepath)
+        if expected_size > 0 and local_size == expected_size:
+            return True
+        else:
+            print(f"[WARN] Size mismatch: expected {expected_size}, got {local_size}")
+            return False
+    except Exception as e:
+        print(f"[WARN] Could not verify file size for {filepath}: {e}")
+        return False
+
 def robust_download(url, filename, retries=3, delay=5):
     """堅牢なダウンロード処理 (aria2c > wget > Python requests) """
+
+    # 保存ディレクトリを先に作成
+    out_dir = os.path.dirname(filename)
+    os.makedirs(out_dir, exist_ok=True)
 
     # aria2c があれば優先
     if has_command("aria2c"):
         print("[INFO] Using aria2c for download")
-        out_dir = os.path.dirname(filename)
-        os.makedirs(out_dir, exist_ok = True)
         cmd = ["aria2c", "-x", "8", "-s", "8", "-c",
                "--retry-wait=5", # サーバーが通信を強制的に切断後、5秒待って再開
-               "--max-tries=30", # 再試行の上限回数
+               "--max-tries=10", # 再試行の上限回数
+               "--file-allocation=none",
                "-d", out_dir,
                "-o", os.path.basename(filename),
-               url]
+               url,
+        ]
         subprocess.run(cmd, check=True)
         return
 
@@ -135,26 +153,25 @@ def fetch_dataset(name: str, base_dir: str = None):
         filename = os.path.basename(url)
         file_path = os.path.join(dataset_dir, filename)
 
-        # 不完全なファイルが残っていたら削除
+        # 既存ファイルの検証
         if os.path.exists(file_path):
-            try:
-                expected_size = int(requests.head(url, timeout=10).headers.get("Content-Length", 0))
-                local_size = os.path.getsize(file_path)
-                if expected_size > 0 and local_size < expected_size:
-                    print(f"[WARN] Incomplete file detected. Deleting {file_path}")
-                    os.remove(file_path)
-            except Exception:
-                pass # Content-Length が取れない場合は無視
+            if verify_file(url, file_path):
+                print(f"[INFO] {filename} already exists and is valid. Skipping download.")
+                paths[key] = file_path
+                continue
+            else:
+                print(f"[WARN] {filename} is incomplete or corrupted. Deleting...")
+                os.remove(file_path)
 
-        print(f"参照しているパス: {file_path}")
-        if not os.path.exists(file_path):
-            print(f"[INFO] Downloading {filename} ...")
-            robust_download(url, file_path)
-        else:
-            print(f"[INFO] {filename} already exists. Skipping download. ")
+        # ダウンロード
+        print(f"[INFO] Downloading {filename} ...")
+        robust_download(url, file_path)
+
+        # ダウンロード後の再検証
+        if not verify_file(url, file_path):
+            raise RuntimeError(f"Download failed or incomplete for {filename}")
 
         paths[key] = file_path
-
     return paths
 
 if __name__ == "__main__":
@@ -163,8 +180,8 @@ if __name__ == "__main__":
     # pprint(os.environ["PATH"])
 
     # dataset_keyword = "Indianpines"
-    # dataset_keyword = "Salinas"
+    dataset_keyword = "Salinas"
     # dataset_keyword = "SalinasA"
     # dataset_keyword = "Pavia"
-    dataset_keyword = "PaviaU"
+    # dataset_keyword = "PaviaU"
     fetch_dataset(dataset_keyword)
