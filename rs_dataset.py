@@ -230,7 +230,6 @@ def load_mat_file(file_path):
             print(f"[ERROR] h5py でも失敗: {e2}")
             return {}
 
-
 if __name__ == '__main__':
 
     # インスタンス化
