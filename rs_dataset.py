@@ -6,7 +6,7 @@ import scipy.io
 from sklearn.decomposition import PCA, FastICA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.manifold import TSNE
-import h5py
+# import h5py
 from pprint import pprint
 
 __version__ = "0.0.1"
@@ -216,19 +216,19 @@ def load_mat_file(file_path):
         mat_data = scipy.io.loadmat(file_path)
         return {k: v for k, v in mat_data.items() if not k.startswith("__")}
     except Exception as e:
-        print(f"[WARN] scipy.io.loadmat 失敗 ({e}), h5py に切り替えます")
-        try:
-            data = {}
-            with h5py.File(file_path, "r") as f:
-                for k in f.keys():
-                    arr = np.array(f[k])
-                    if arr.ndim > 1:
-                        arr = arr.transpose()
-                    data[k] = arr
-            return data
-        except Exception as e2:
-            print(f"[ERROR] h5py でも失敗: {e2}")
-            return {}
+        print(f"[WARN] scipy.io.loadmat 失敗 ({e})")
+        # try:
+            # data = {}
+            # with h5py.File(file_path, "r") as f:
+                # for k in f.keys():
+                    # arr = np.array(f[k])
+                    # if arr.ndim > 1:
+                        # arr = arr.transpose()
+                    # data[k] = arr
+            # return data
+        # except Exception as e2:
+            # print(f"[ERROR] h5py でも失敗: {e2}")
+            # return {}
 
 if __name__ == '__main__':
 
