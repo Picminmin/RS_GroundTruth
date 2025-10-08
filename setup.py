@@ -11,7 +11,7 @@ setup(
         "numpy",
         "scipy",
         "scikit-learn",
-        "h5py",
+        # "h5py",
     ],
     python_requires=">=3.8",
 )
