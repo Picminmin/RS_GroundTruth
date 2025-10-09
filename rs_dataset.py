@@ -118,15 +118,73 @@ class RemoteSensingDataset:
 
     # ================ 次元圧縮メソッド ================
 
-    def apply_pca(self, X, n_components=30):
+    def apply_pca(
+        self,
+        X, n_components=30,
+        mean_centering=True,
+        whitening_option = "pca_whitening",
+        eps = 1E-6
+        ):
         """PCAによる次元圧縮
         ・ scikit-learn User Guide:
         https://scikit-learn.org/stable/modules/decomposition.html#pca
+
+        平均中心化(mean-centering)によるPCAを実装する。平均中心化をしない
+        場合は主成分がデータの平均ベクトルに影響を受けるために、平均中心化
+        をしなかった理由をきつく詰められると考えられる。
+        PCAにおいて、平均中心化をしておくのはお作法という位置づけと思っても
+        よいかもしれない。
+        ・ "The Effect of Data Centering on PCA Models"
+        URL: https://eigenvector.com/wp-content/uploads/2020/06/EffectofCenteringonPCA.pdf
+
+        Args:
+            mean_centering (bool): 平均中心化をするかどうか。デフォルトはTrue。
+            whitening_option (str): 相関を消して、各軸の分散を1にそろえる線形変換を行う白色化。
+            ["pca_whitening", "zca_whitening"]のいずれかが選べる。
+            デフォルトは、pca_whitening。pca_whiteningがPCAで得られた主成分軸に対してデータを
+            プロットするのに対し、zca_whiteningはもとのは座標系上にデータをプロットする。
+            eps (float): 固有ベクトルを要素に持つ対角行列が発散しないようにするための
+            小さい値。
         """
         H, W, B = X.shape
-        X_flat = X.reshape(-1, B)
-        X_pca = PCA(n_components=n_components).fit_transform(X_flat)
-        return X_pca.reshape(H, W, -1)
+        X_flat = X.reshape(-1, B) # (n_samples, n_features)=(N, D)
+
+        # --- 1. 平均中心化 ---
+        if mean_centering:
+            mean = np.mean(X_flat, axis=0)
+            Xc = X_flat - mean
+        else:
+            Xc = X_flat
+
+        # --- 2. 共分散行列 Φ_X = (1/N) X X^T ---
+        N = X_flat.shape[0]
+        cov = (1.0 / N) * Xc.T @ Xc # (D, D)
+
+        # --- 3. 固有値分解 Φ_X = A Ω A^T ---
+        eigvals, eigvecs = np.linalg.eigh(cov) # 対称行列なのでeighが安定
+        # 固有値を大きい順に並べ替え
+        idx = np.argsort(eigvals)[::-1]
+        eigvals = eigvals[idx]
+        eigvecs = eigvecs[:, idx]
+        # --- 上位 n_components だけ残す ---
+        if n_components is not None and n_components < eigvals.shape[0]:
+            eigvals = eigvals[:n_components]
+            eigvecs = eigvecs[:, :n_components]
+
+        # --- 4. Whitening行列 ---
+        # --- P_PCA = Ω^{-1/2} A^T ---
+        if whitening_option == "pca_whitening":
+            P_pca = np.diag(1.0 / np.sqrt(eigvals + eps)) @ eigvecs.T
+            # U_pca: 平均中心化データ行列へのP_pcaによる線形変換
+            U_pca = Xc @ P_pca.T # ← shape: (N, n_components)
+            U_pca = U_pca.reshape((H, W, n_components))
+            return U_pca
+        elif whitening_option == "zca_whitening":
+            P_zca = eigvecs @ np.diag(1.0 / np.sqrt(eigvals + eps)) @ eigvecs.T
+            U_zca = Xc @ P_zca.T # ← shape: (N, n_components)
+            U_zca = U_zca.reshape((H, W, n_components))
+            return U_zca
+
 
     def apply_ica(self, X, n_components=30):
         """ICAによる次元圧縮
@@ -245,9 +303,9 @@ if __name__ == '__main__':
     print(f"[INFO] class_list: {list(np.unique(y))}")
 
     X_pca = ds.apply_pca(X=X, n_components=20)
-    X_lda = ds.apply_lda(X=X, y=y, n_components=15)
     print(X_pca.shape)
-    print(X_lda.shape)
+    # X_lda = ds.apply_lda(X=X, y=y, n_components=15)
+    # print(X_lda.shape)
 
     dataset_keyword = "Salinas"
     X, y = ds.load(dataset_keyword)
