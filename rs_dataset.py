@@ -139,10 +139,15 @@ class RemoteSensingDataset:
 
         Args:
             mean_centering (bool): 平均中心化をするかどうか。デフォルトはTrue。
-            whitening_option (str): 相関を消して、各軸の分散を1にそろえる線形変換を行う白色化。
+            whitening_option (str): 相関を消して、各軸の分散を1(無相関かつ等分散)に
+            そろえる線形変換を行う白色化。
             ["pca_whitening", "zca_whitening"]のいずれかが選べる。
             デフォルトは、pca_whitening。pca_whiteningがPCAで得られた主成分軸に対してデータを
             プロットするのに対し、zca_whiteningはもとのは座標系上にデータをプロットする。
+            PCA, ZCAそれぞれでのRS画像による土地被覆分類手法に与えるPCA, ZCAの効果の違いが
+            報告された比較研究は現時点では見当たらない。また、土地被覆分類手法の文脈では
+            PCAやMNF(Minimum Noise Fraction)が前処理として頻出するため、デフォルトの
+            pca_whiteningを使うことにする。
             eps (float): 固有ベクトルを要素に持つ対角行列が発散しないようにするための
             小さい値。
         """
@@ -184,17 +189,6 @@ class RemoteSensingDataset:
             U_zca = Xc @ P_zca.T # ← shape: (N, n_components)
             U_zca = U_zca.reshape((H, W, n_components))
             return U_zca
-
-
-    def apply_ica(self, X, n_components=30):
-        """ICAによる次元圧縮
-        ・ scikit-learn User Guide:
-        https://scikit-learn.org/stable/modules/decomposition.html#ica
-        """
-        H, W, B = X.shape
-        X_flat = X.reshape
-        X_ica = FastICA(n_components=n_components, random_state=0).fit_transform(X_flat)
-        return X_ica.reshape(H, W, -1)
 
     def apply_lda(self, X, y, n_components=10):
         """LDAによる次元圧縮 (教師ラベル必要)
