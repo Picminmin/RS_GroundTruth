@@ -8,6 +8,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.manifold import TSNE
 # import h5py
 from pprint import pprint
+from pathlib import Path
 
 __version__ = "0.0.1"
 class RemoteSensingDataset:
@@ -32,9 +33,10 @@ class RemoteSensingDataset:
         """
 
         if base_dir is None:
-            cache_dir = Path.home() / ".cache" / "RS_GroundTruth"
-            cache_dir.mkdir(parents=True, exist_ok=True)
-            self.base_dir = str(cache_dir)
+            # 一つ上の階層のディレクトリパスを取得
+            main_project_dir = Path(__file__).parent.parent.resolve()
+            used_dir = main_project_dir / "RS_GroundTruth"
+            self.base_dir = str(used_dir)
         else:
             self.base_dir = base_dir
 
