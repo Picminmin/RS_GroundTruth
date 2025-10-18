@@ -3,10 +3,10 @@ import os
 from pathlib import Path
 import numpy as np
 import scipy.io
+import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA, FastICA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.manifold import TSNE
-# import h5py
 from pprint import pprint
 from pathlib import Path
 
@@ -21,7 +21,6 @@ class RemoteSensingDataset:
     でデータセットの読み込みが完了する。
     X: (H, W, Bands)
     y: (H, W) となっている。
-
     """
     def __init__(self, base_dir=None, remove_bad_bands = True):
         """
@@ -119,15 +118,19 @@ class RemoteSensingDataset:
         return len(np.unique(y[y != self.background_label])) # 背景=0 を除外
 
     # ================ 次元圧縮メソッド ================
-
     def apply_pca(
         self,
-        X, n_components=30,
+        X,
+        n_components=None,
+        variance_threshold: float = 0.98,
         mean_centering=True,
         whitening_option = "pca_whitening",
-        eps = 1E-6
-        ):
-        """PCAによる次元圧縮
+        eps = 1E-6,
+        dataset_keyword=None,
+        save_dir = "img"
+    ):
+        """PCAによる次元圧縮(寄与率プロット付き・動的主成分数決定)
+
         ・ scikit-learn User Guide:
         https://scikit-learn.org/stable/modules/decomposition.html#pca
 
@@ -140,7 +143,10 @@ class RemoteSensingDataset:
         URL: https://eigenvector.com/wp-content/uploads/2020/06/EffectofCenteringonPCA.pdf
 
         Args:
-            mean_centering (bool): 平均中心化をするかどうか。デフォルトはTrue。
+            X (ndarray): 入力データ(H, W, B)
+            n_components (int or None): 固定主成分数。Noneなら累積寄与率から自動決定。
+            variance_threshold (float): 累積寄与率がこの値以上になるような最小の主成分数を選ぶ。
+            mean_centering (bool): 平均中心化をするかどうか。
             whitening_option (str): 相関を消して、各軸の分散を1(無相関かつ等分散)に
             そろえる線形変換を行う白色化。
             ["pca_whitening", "zca_whitening"]のいずれかが選べる。
@@ -150,13 +156,18 @@ class RemoteSensingDataset:
             報告された比較研究は現時点では見当たらない。また、土地被覆分類手法の文脈では
             PCAやMNF(Minimum Noise Fraction)が前処理として頻出するため、デフォルトの
             pca_whiteningを使うことにする。
-            eps (float): 固有ベクトルを要素に持つ対角行列が発散しないようにするための
-            小さい値。
+            eps (float): 数値安定化項。固有ベクトルを要素に持つ対角行列が発散しないようにするため
+            の小さい値。
+            dataset_keyword (str): データセット名 (例: "Indianpines")。出力ファイル名に使用。
+            save_dir (str): 寄与率プロットの保存先ディレクトリ。
+
+        Returns:
+            ndarray: 変換後データ(H, W, n_components_used)
         """
+
+        # --- 1. 前処理 ---
         H, W, B = X.shape
         X_flat = X.reshape(-1, B) # (n_samples, n_features)=(N, D)
-
-        # --- 1. 平均中心化 ---
         if mean_centering:
             mean = np.mean(X_flat, axis=0)
             Xc = X_flat - mean
@@ -169,28 +180,67 @@ class RemoteSensingDataset:
 
         # --- 3. 固有値分解 Φ_X = A Ω A^T ---
         eigvals, eigvecs = np.linalg.eigh(cov) # 対称行列なのでeighが安定
-        # 固有値を大きい順に並べ替え
-        idx = np.argsort(eigvals)[::-1]
+        idx = np.argsort(eigvals)[::-1] # 固有値を大きい順に並べ替え
         eigvals = eigvals[idx]
         eigvecs = eigvecs[:, idx]
-        # --- 上位 n_components だけ残す ---
-        if n_components is not None and n_components < eigvals.shape[0]:
-            eigvals = eigvals[:n_components]
-            eigvecs = eigvecs[:, :n_components]
 
-        # --- 4. Whitening行列 ---
-        # --- P_PCA = Ω^{-1/2} A^T ---
+        # --- 4. 寄与率と累積寄与率 ---
+        explained_var_ratio = eigvals / np.sum(eigvals)
+        cumulative_ratio = np.cumsum(explained_var_ratio)
+
+        # --- 5. 主成分数を自動決定 ---
+        if n_components is None:
+            n_components = np.searchsorted(cumulative_ratio, variance_threshold) + 1
+
+        eigvals = eigvals[:n_components]
+        eigvecs = eigvecs[:, :n_components]
+
+        # --- 6. whitening ---
         if whitening_option == "pca_whitening":
             P_pca = np.diag(1.0 / np.sqrt(eigvals + eps)) @ eigvecs.T
-            # U_pca: 平均中心化データ行列へのP_pcaによる線形変換
-            U_pca = Xc @ P_pca.T # ← shape: (N, n_components)
+            U_pca = Xc @ P_pca.T
             U_pca = U_pca.reshape((H, W, n_components))
-            return U_pca
         elif whitening_option == "zca_whitening":
             P_zca = eigvecs @ np.diag(1.0 / np.sqrt(eigvals + eps)) @ eigvecs.T
-            U_zca = Xc @ P_zca.T # ← shape: (N, n_components)
-            U_zca = U_zca.reshape((H, W, n_components))
-            return U_zca
+            U_pca = Xc @ P_zca.T
+            U_pca = U_pca.reshape((H, W, n_components))
+        else:
+            raise ValueError("whitening_option must be 'pca_whitening' or 'zca_whitening'")
+
+        # --- 7. 属性に保存 ---
+        self.n_components_used = n_components
+        self.explained_variance_ratio_ = explained_var_ratio
+        self.cumulative_variance_ratio_ = cumulative_ratio
+        self.variance_threshold = variance_threshold
+
+        print(f"[INFO] PCA: 寄与率閾値 {variance_threshold:.2f} に対して"
+              f"{n_components} 成分を採用 (累積寄与率={cumulative_ratio[n_components-1]:.4f})")
+
+        # --- 8. プロット ---
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, f"pca_variance_{dataset_keyword or 'RSdataset'}.png")
+
+        plt.figure(figsize=(6,4))
+        plt.plot(np.arange(1,len(explained_var_ratio) + 1), explained_var_ratio,
+                 marker="o",label="Explained variance ratio")
+        plt.plot(np.arange(1,len(cumulative_ratio) + 1), cumulative_ratio,
+                 marker="s",label="Cumulative variance ratio")
+        plt.axhline(variance_threshold, color="r", linestyle="--",
+                    label=f"Threshold = {variance_threshold:.2f}" )
+        plt.axhline(n_components, color="g", linestyle="--",
+            label=f"n_components = {n_components:.2f}" )
+        plt.xlabel("Principal Component Index")
+        plt.ylabel("Variance Ratio")
+        plt.title(f"PCA Variance Analysis ({dataset_keyword})")
+        # 表示する値の範囲の指定
+        plt.xlim(0,n_components + 10) # 横軸の範囲の指定(0からn_componentsに適当な定数を加えた数まで)
+        plt.ylim(0,1) # 縦軸の範囲の指定(0から1まで)
+        plt.legend(loc="best")
+        plt.tight_layout()
+        plt.savefig(save_path, dpi = 300)
+        plt.close()
+        print(f"[INFO] 寄与率プロットを保存しました → {save_path}")
+        return U_pca
 
     def apply_lda(self, X, y, n_components=10):
         """LDAによる次元圧縮 (教師ラベル必要)
@@ -271,18 +321,6 @@ def load_mat_file(file_path):
         return {k: v for k, v in mat_data.items() if not k.startswith("__")}
     except Exception as e:
         print(f"[WARN] scipy.io.loadmat 失敗 ({e})")
-        # try:
-            # data = {}
-            # with h5py.File(file_path, "r") as f:
-                # for k in f.keys():
-                    # arr = np.array(f[k])
-                    # if arr.ndim > 1:
-                        # arr = arr.transpose()
-                    # data[k] = arr
-            # return data
-        # except Exception as e2:
-            # print(f"[ERROR] h5py でも失敗: {e2}")
-            # return {}
 
 if __name__ == '__main__':
 
@@ -303,30 +341,30 @@ if __name__ == '__main__':
     # X_lda = ds.apply_lda(X=X, y=y, n_components=15)
     # print(X_lda.shape)
 
-    dataset_keyword = "Salinas"
-    X, y = ds.load(dataset_keyword)
-    print(X.shape)
-    print(y.shape)
-    print(f"[INFO] class_list: {list(np.unique(y))}")
-    print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
-
-    dataset_keyword = "SalinasA"
-    X, y = ds.load(dataset_keyword)
-    print(X.shape)
-    print(y.shape)
-    print(f"[INFO] class_list: {list(np.unique(y))}")
-    print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
-
-    dataset_keyword = "Pavia"
-    X, y = ds.load(dataset_keyword)
-    print(X.shape)
-    print(y.shape)
-    print(f"[INFO] class_list: {list(np.unique(y))}")
-    print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
-
-    dataset_keyword = "PaviaU"
-    X, y = ds.load(dataset_keyword)
-    print(X.shape)
-    print(y.shape)
-    print(f"[INFO] class_list: {list(np.unique(y))}")
-    print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
+    # dataset_keyword = "Salinas"
+    # X, y = ds.load(dataset_keyword)
+    # print(X.shape)
+    # print(y.shape)
+    # print(f"[INFO] class_list: {list(np.unique(y))}")
+    # print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
+#
+    # dataset_keyword = "SalinasA"
+    # X, y = ds.load(dataset_keyword)
+    # print(X.shape)
+    # print(y.shape)
+    # print(f"[INFO] class_list: {list(np.unique(y))}")
+    # print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
+#
+    # dataset_keyword = "Pavia"
+    # X, y = ds.load(dataset_keyword)
+    # print(X.shape)
+    # print(y.shape)
+    # print(f"[INFO] class_list: {list(np.unique(y))}")
+    # print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
+#
+    # dataset_keyword = "PaviaU"
+    # X, y = ds.load(dataset_keyword)
+    # print(X.shape)
+    # print(y.shape)
+    # print(f"[INFO] class_list: {list(np.unique(y))}")
+    # print(f"[INFO] {dataset_keyword} category_num: {ds.category_num(dataset_keyword)}")
