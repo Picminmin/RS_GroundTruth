@@ -242,6 +242,139 @@ class RemoteSensingDataset:
         print(f"[INFO] 寄与率プロットを保存しました → {save_path}")
         return U_pca
 
+    def apply_pca_diagnostic(
+        self,
+        X,
+        n_components=None,
+        variance_threshold: float = 0.995,
+        mean_centering=True,
+        whitening_option="pca_whitening",
+        eps=1e-6,
+        dataset_keyword=None,
+        save_dir="img"
+    ):
+        """
+        PCAによる次元圧縮 + 各主成分のスペクトル的意味の可視化
+
+        ・寄与率プロット
+        ・主成分ごとのバンド寄与 (loading plot)
+        ・元バンドとの相関ヒートマップ
+
+        Args:
+            X (ndarray): 入力データ (H, W, B)
+            n_components (_type_, optional): 固定主成分数。Noneなら累積寄与率で自動決定。
+            variance_threshold (float, optional): 累積寄与率がこの値以上になるように主成分数を選択する
+            mean_centering (bool): 平均中心化するか
+            whitening_option (str): "pca_whitening" or "zca_whitening"
+            eps (float, optional): 数値安定化項
+            dataset_keyword (str, optional): データセット名
+            save_dir (str, optional): 保存ディレクトリ
+        Returns:
+            ndarray: 変換後データ (H, W, n_components_used)
+        """
+
+        os.makedirs(save_dir, exist_ok=True)
+        H, W, B = X.shape
+        X_flat = X.reshape(-1, B)
+
+        # --- 1. 平均中心化 ---
+        if mean_centering:
+            mean = np.mean(X_flat, axis=0)
+            Xc = X_flat - mean
+        else:
+            Xc = X_flat
+
+        # --- 2. 共分散行列 & 固有値分解 ---
+        N = X_flat.shape[0]
+        cov = (1.0 / N) * Xc.T @ Xc
+        eigvals, eigvecs = np.linalg.eigh(cov)
+        idx = np.argsort(eigvals)[::-1]
+        eigvals, eigvecs = eigvals[idx], eigvecs[:, idx]
+
+        # --- 3. 寄与率 ---
+        explained_var_ratio = eigvals / np.sum(eigvals)
+        cumulative_ratio = np.cumsum(explained_var_ratio)
+
+        # --- 4. 主成分数を自動決定 ---
+        if n_components is None:
+            n_components = np.searchsorted(cumulative_ratio, variance_threshold) + 1
+        eigvals, eigvecs = eigvals[:n_components], eigvecs[:, :n_components]
+
+        # --- 5. whitening (既存処理) ---
+        if whitening_option == "pca_whitening":
+            P_pca = np.diag(1.0 / np.sqrt(eigvals + eps)) @ eigvecs.T
+            U_pca = Xc @ P_pca.T
+            U_pca = U_pca.reshape((H, W, n_components))
+        elif whitening_option == "zca_whitening":
+            P_zca = eigvecs @ np.diag(1.0 / np.sqrt(eigvals + eps)) @ eigvecs.T
+            U_pca = Xc @ P_zca.T
+            U_pca = U_pca.reshape((H, W, n_components))
+        else:
+            raise ValueError("whitening_option must be 'pca_whitening' or 'zca_whitening'")
+
+        # --- 6. 基本情報出力 ---
+        print(f"[INFO] PCA: 累積寄与率 {cumulative_ratio[n_components-1]:.4f} で {n_components} 成分を採用")
+        print(f"[INFO] 第一主成分 ~ 第{n_components}主成分の寄与率: {explained_var_ratio[:n_components]}")
+
+        # --- 7. 寄与率プロット ---
+        plt.figure(figsize=(6, 4))
+        plt.plot(np.arange(1, len(explained_var_ratio) + 1), explained_var_ratio, "o-", label="Explained variance")
+        plt.plot(np.arange(1, len(cumulative_ratio) + 1), cumulative_ratio, "s-", label="Cumulative variance")
+        plt.axhline(variance_threshold, color="r", linestyle="--", label=f"Threshold={variance_threshold:.2f}")
+        plt.xlabel("Principal Component Index")
+        plt.ylabel("Variance Ratio")
+        plt.title(f"PCA Variance ({dataset_keyword})")
+        plt.legend()
+        plt.tight_layout()
+        save_path_var = os.path.join(save_dir, f"pca_variance_{dataset_keyword or 'RS'}.png")
+        plt.savefig(save_path_var, dpi = 300)
+        plt.close()
+        print(f"[INFO] 寄与率プロットを保存しました → {save_path_var}")
+
+        # --- 8. 主成分のバンド寄与 (Loading Plot) ---
+        plt.figure(figsize=(7, 4))
+        for i in range(n_components):
+            plt.plot(np.arange(B), eigvecs[:, i], label=f"PC{i+1} ({explained_var_ratio[i]*100:.1f}%)")
+        plt.xlabel("Band index (wavelength order)")
+        plt.ylabel("Loading weight")
+        plt.title(f"PCA Band Loadings ({dataset_keyword})")
+        plt.legend()
+        plt.grid(alpha=0.3)
+        plt.tight_layout()
+        save_path_load = os.path.join(save_dir, f"pca_loadings_{dataset_keyword or 'RS'}.png")
+        plt.savefig(save_path_load, dpi = 300)
+        plt.close()
+        print(f"[INFO] 主成分ベクトルプロットを保存しました → {save_path_load}")
+
+        # --- 9. 元バンドとの相関ヒートマップ ---
+        X_flat_norm = (X_flat - X_flat.mean(axis=0)) / (X_flat.std(axis=0) + eps)
+        U_flat_norm = (U_pca.reshape(-1, n_components) - U_pca.reshape(-1, n_components).mean(axis=0)) \
+                       / (U_pca.reshape(-1, n_components).std(axis=0) + eps)
+        corr_matrix = np.corrcoef(X_flat_norm.T, U_flat_norm.T)[0:B, B:]
+
+        plt.figure(figsize=(6, 5))
+        plt.imshow(corr_matrix, cmap="coolwarm", aspect="auto", vmin=-1, vmax=1)
+        plt.colorbar(label="Correlation coefficient")
+        plt.xlabel("Principal Component")
+        plt.ylabel("Band index")
+        plt.title(f"Correlation: Bands vs PCA Components ({dataset_keyword})")
+        plt.tight_layout()
+        save_path_corr = os.path.join(save_dir, f"pca_corr_{dataset_keyword or 'RS'}.png")
+        plt.savefig(save_path_corr, dpi = 300)
+        plt.close()
+        print(f"[INFO] バンド・主成分相関ヒートマップを保存しました → {save_path_corr}")
+
+        # --- 10. 結果を属性に保存 ---
+        self.pca_eigvecs_ = eigvecs
+        self.pca_eigvals_ = eigvals
+        self.pca_explained_var_ratio_ = explained_var_ratio
+        self.pca_corr_matrix_ = corr_matrix
+        self.n_components_used = n_components
+
+        return U_pca
+
+
+
     def apply_lda(self, X, y, n_components=10):
         """LDAによる次元圧縮 (教師ラベル必要)
         ・ scikit-learn User Guide:
