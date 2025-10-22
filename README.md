@@ -12,7 +12,7 @@ RSデータセットは、本パッケージ内にあるfetch_dataset()を実行
 
 ## インストール方法(Installation)
 ```bash
-pip install git+https://github.com/Picminmin/RS_GroundTruth
+pip install -e git+https://github.com/Picminmin/RS_GroundTruth
 ```
 インストールしたパッケージをGitHubリポジトリの最新版に置き換えたい場合には、以下のコマンドを実行してください。
 ```bash
