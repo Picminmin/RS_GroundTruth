@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import scipy.io
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA, FastICA
+from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.manifold import TSNE
 from pprint import pprint
