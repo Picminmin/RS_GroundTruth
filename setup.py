@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="RS_GroundTruth",                # パッケージ名（pip install名にもなる）
-    version="0.2.0",                      # バージョン
+    version="0.3.0",                      # バージョン
     description="Hyperspectral Remote Sensing Dataset Loader for Land-Cover Classification",
     author="Sohta Serikawa",
     license="MIT",
