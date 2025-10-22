@@ -1,3 +1,6 @@
 
 # RS_GroundTruth 配下の .matファイルは無視
 *.mat
+fetch_dataset.py
+intro_spy0524.ipynb
+README.txt
