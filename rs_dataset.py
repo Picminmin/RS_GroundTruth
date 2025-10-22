@@ -10,7 +10,7 @@ from sklearn.manifold import TSNE
 from pprint import pprint
 from pathlib import Path
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 class RemoteSensingDataset:
     """リモートセンシングデータセットのロードと次元圧縮
 
